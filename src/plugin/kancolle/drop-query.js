@@ -39,8 +39,74 @@ function output(group, query_result){
   });
 }
 
-function processOutput(fromGroup, test_name, err, res){
-  if(err || !(res = parsePoiStatJSON(res))){
+function isCacheExpired(last_update){
+  let lifetime = new Date() - new Date(last_update);
+  return lifetime > (CONFIG.update_cycle * 1000 + 60000);
+}
+
+function getCachedJSON(pid, cb){
+  let cachedFile = path.join(__dirname, "cache", `${pid}.json`);
+
+  //the cache is hit
+  if(fs.existsSync(cachedFile)){
+    logger.debug(`Local cache is hit by ship id=${pid}`);
+
+    let cachedData = fs.readJsonSync(cachedFile, {throws: false});
+
+    //not expired
+    if(!isCacheExpired(cachedData.generateTime)){ // buffer time: 1 min
+      logger.debug(`The cache is still effective`);
+      if(typeof cb === "function"){
+        cb(cachedData);
+      }
+      return;
+    }
+
+    logger.debug(`The cache is out of date`);
+  }
+  else{
+    logger.debug(`The cache miss`);
+  }
+
+  logger.debug(`Update the cache from https://db.kcwiki.org/drop/ship/${pid}/SAB.json`);
+  //connect to poi
+  getJSON(`https://db.kcwiki.org/drop/ship/${pid}/SAB.json`, function(err, res){
+    if(err){
+      logger.error("Connection error occurs when trying to connect to Poi DB");
+      logger.error(err);
+      return;
+    }
+
+    setImmediate(function(){
+      cb(res);
+    });
+
+    if(!res){
+      logger.info(`Empty response indicates no such data for ship id=${pid}`);
+      res = {generateTime: new Date().getTime()};
+    }
+
+    if(isCacheExpired(res.generateTime)){
+      logger.info("Data from Poi DB is still an out-of-date data");
+      logger.info("Refresh generateTime to cache the file for one more lifetime");
+      res.generateTime = new Date().getTime();
+    }
+
+    // make cache file
+    try{
+      fs.ensureFileSync(cachedFile);
+      fs.writeJsonSync(cachedFile, res);
+    }
+    catch(e){
+      logger.error(`Error occurs when making cache for ship id=${pid}`);
+      logger.error(e);
+    }
+  });
+
+}
+
+function processOutput(fromGroup, test_name, res){
+  if(!(res = parsePoiStatJSON(res))){
     logger.error(`Cannot find drop statistics for Ship '${test_name}'`);
     output(fromGroup, `電醬沒有在Poi資料庫找到${ch.s2t(test_name)}的資料[CQ:face,id=9]`);
     return; //not found
@@ -133,15 +199,15 @@ module.exports = {
               let test_name = candidate.substr(start_idx, name_length), pid = -1;
               if((pid = kcdata.getPoiIDByName(test_name)) >= 0){ //found
                 logger.info(`Ship named ${test_name} is found!`);
-                getJSON(`https://db.kcwiki.org/drop/ship/${pid}/SAB.json`, function(err, res){
-                  processOutput(bundle.fromGroup, test_name, err, res);
+                getCachedJSON(pid, function(res){
+                  processOutput(bundle.fromGroup, test_name, res);
                 });
                 return;
               }
               else if((pid = kcdata.getPoiIDByNameExdata(test_name)) >= 0){
                 logger.info(`Ship named ${test_name} is found!`);
-                getJSON(`https://db.kcwiki.org/drop/ship/${pid}/SAB.json`, function(err, res){
-                  processOutput(bundle.fromGroup, test_name, err, res);
+                getCachedJSON(pid, function(res){
+                  processOutput(bundle.fromGroup, test_name, res);
                 });
                 return;
               }
