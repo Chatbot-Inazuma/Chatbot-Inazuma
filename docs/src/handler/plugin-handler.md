@@ -1,3 +1,4 @@
+#### [↵ 回上一層](/docs/README.md)
 # 插件處理器 (PluginHandler)
 繼承EventEmitter類，上限目前設定為100個監聽器。
 
