@@ -3,7 +3,7 @@ const path = require("path");
 const request = require("request");
 const _ = require("lodash");
 
-const logger = (global.getLogger)? global.getLogger("data-update"): console;
+const logger = global.getLogger("data-update");
 const MAX_CONN_TRY = 5;
 const URL_SHIP_INFO = "http://kcwikizh.github.io/kcdata/ship/all.json";
 const PATH_SHIP_INFO = path.join(__dirname, "poi-stat.ship-info.json");
@@ -23,7 +23,7 @@ function updateShipInfo(cb){
         return;
       }
 
-      logger.log(`Successfully fetch JSON data, writing to ${PATH_SHIP_INFO}`);
+      logger.info(`Successfully fetch JSON data, writing to ${PATH_SHIP_INFO}`);
       fs.outputJsonSync(PATH_SHIP_INFO, res);
 
       if(typeof cb === "function"){
@@ -32,7 +32,7 @@ function updateShipInfo(cb){
     });
   };
 
-  logger.log("Schedule a update for ship info");
+  logger.info("Schedule a update for ship info");
   setImmediate(scheduleUpdate);
 }
 

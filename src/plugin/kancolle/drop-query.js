@@ -19,10 +19,10 @@ function readCSONFile(cson){
   try{
     fs.accessSync(cson, fs.R_OK|fs.W_OK);
     return CSON.parseCSONFile(cson);
-    logger.info(`Successfully read ${configFile}`);
+    logger.info(`Successfully read ${cson}`);
   }
   catch(e){
-    logger.error(`Fail to read cson from ${configFile}`);
+    logger.error(`Fail to read cson from ${cson}`);
     logger.error(e);
     return undefined;
   }
@@ -119,7 +119,7 @@ function processOutput(fromGroup, test_name, res){
     for(let map_name of _.keys(res)){
       let kaiiki_stage = map_name.split("-");
       let map_readable = SHIP_EXDATA.mapWikiData[parseInt(`${kaiiki_stage[0]}${kaiiki_stage[1]}`)];
-      map_readable = map_readable.replace(/^20([0-9]{2})年(.)季活动\/(E-\d)$/, "$1$2$3");
+      map_readable = map_readable.replace(/^20([0-9]{2})年(.)季活动\/(E-\d)$/, "$1$2$3") + ` ${kaiiki_stage[2]}點`;
       query_result += ` - 在${map_readable}的掉落率為${res[map_name].rate}%\n`;
       query_result += `   母數為${res[map_name].totalCount}件, `;
       query_result += `S勝${res[map_name].rankCount[0]}件, A勝${res[map_name].rankCount[1]}件, B勝${res[map_name].rankCount[2]}件\n`;
@@ -129,7 +129,7 @@ function processOutput(fromGroup, test_name, res){
   else if(res.type == "highest" && !_.isEmpty(res.name)){
     let kaiiki_stage = res.name.split("-");console.log(res.name)
     let map_readable = SHIP_EXDATA.mapWikiData[parseInt(`${kaiiki_stage[0]}${kaiiki_stage[1]}`)];
-    map_readable = map_readable.replace(/^20([0-9]{2})年(.)季活动\/(E-\d)$/, "$1$2$3");
+    map_readable = map_readable.replace(/^20([0-9]{2})年(.)季活动\/(E-\d)$/, "$1$2$3") + ` ${kaiiki_stage[2]}點`;
     query_result += ` - 在一般海域中以${map_readable}的掉落率${res.stat.rate}%最高\n`;
     query_result += `   母數為${res.stat.totalCount}件, `;
     query_result += `S勝${res.stat.rankCount[0]}件, A勝${res.stat.rankCount[1]}件, B勝${res.stat.rankCount[2]}件\n`;
