@@ -67,4 +67,4 @@ this[plugin_id][module_name].run()
 ```
 ## TODO
 - [x] 載入插件及模塊
-- [] 註冊插件之info.cson內容，並提供接口給插件調用
+- [ ] 註冊插件之info.cson內容，並提供接口給插件調用
