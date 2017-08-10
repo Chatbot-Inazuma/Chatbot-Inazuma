@@ -3,5 +3,7 @@ A chatting AI written in NodeJS characterized as Inazuma, a kanmusu in web game 
 
 > The project is currently WIP.
 
-## License
+## 文件 Document [>>>](/docs/README.md)
+
+## 授權 License
 The license of this project follows the [GNU GPLv3](LICENSE)
