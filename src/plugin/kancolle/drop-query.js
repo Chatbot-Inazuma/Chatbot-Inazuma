@@ -112,14 +112,14 @@ function processOutput(fromGroup, test_name, res){
     return; //not found
   }
 
-  let query_result = `${ch.s2t(test_name)}:\n`;
+  let query_result = `${ch.s2t(test_name)}的掉落率:\n`;
   if(res.type == "interested"){
     delete res.type;
 
     let map_stats = {};
     for(let map_name of _.keys(res)){
       let kaiiki_stage = map_name.split("-");
-      let point_drop = `${res[map_name].rate}% (S: ${res[map_name].rankCount[0]}件, A: ${res[map_name].rankCount[1]}件, B: ${res[map_name].rankCount[2]}件)\n`
+      let point_drop = `${res[map_name].rate}% (S: ${res[map_name].rankCount[0]}件, A: ${res[map_name].rankCount[1]}件, B: ${res[map_name].rankCount[2]}件)`
       _.set(map_stats, `${kaiiki_stage[0]}.${kaiiki_stage[1]}.${kaiiki_stage[2]}.${kaiiki_stage[3]}`, point_drop);
     }
 
@@ -128,7 +128,7 @@ function processOutput(fromGroup, test_name, res){
         for(let point of _.keys(map_stats[kaiiki][map])){
           let map_readable = SHIP_EXDATA.mapWikiData[parseInt(`${kaiiki}${map}`)];
           map_readable = map_readable.replace(/^20([0-9]{2})年(.)季活动\/(E-\d)$/, "$1$2$3");
-          query_result += ` - 在${map_readable} ${point}點的掉落率\n`;
+          query_result += ` - 在${map_readable} ${point}點\n`;
           for(let level of _.keys(map_stats[kaiiki][map][point])){
             query_result += `      · ${level}: ${map_stats[kaiiki][map][point][level]}\n`;
           }
@@ -139,7 +139,7 @@ function processOutput(fromGroup, test_name, res){
   else if(res.type == "highest" && !_.isEmpty(res.name)){
     let kaiiki_stage = res.name.split("-");
     let map_readable = SHIP_EXDATA.mapWikiData[parseInt(`${kaiiki_stage[0]}${kaiiki_stage[1]}`)] + ` ${kaiiki_stage[2]}點`;
-    query_result += ` - 在一般海域中以${map_readable}的掉落率${res.stat.rate}%最高\n`;
+    query_result += ` - 在一般海域中以${map_readable}${res.stat.rate}%最高\n`;
     query_result += `   母數為${res.stat.totalCount}件, `;
     query_result += `S勝${res.stat.rankCount[0]}件, A勝${res.stat.rankCount[1]}件, B勝${res.stat.rankCount[2]}件\n`;
     query_result += `   提督等級分布在Lv.${res.stat.hqLv[0]}~Lv.${res.stat.hqLv[1]}\n`;
