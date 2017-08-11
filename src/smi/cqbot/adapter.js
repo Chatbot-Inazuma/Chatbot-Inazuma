@@ -77,12 +77,12 @@ function init(cb){
         if (message.type === 'utf8') {
           let data = JSON.parse(message.utf8Data);
           if(data.fromQQ && data.fromQQ != CONFIG.bot_qid){
-            logger.debug(`Message input: `, data);
+            // logger.debug(`Message input: `, data);
             global.bot.input("message.input", data);
 
             // @me
             if(data.msg.indexOf(`[CQ:at,qq=${CONFIG.bot_qid}]`) >= 0){
-              logger.debug(`Message input: `, data);
+              // logger.debug(`Message input: `, data);
               global.bot.input("message.@me", data);
             }
           }

@@ -6,7 +6,7 @@ const _ = require("lodash");
 const fs = require("fs-extra");
 
 const ch = require("../../lang/chinese");
-const {getJSON} = require("./lib/data-update");
+const {getJSON, getRaw} = require("./lib/data-update");
 const kcdata = require("./lib/kcdata-utils");
 const SHIP_EXDATA = require("./lib/poi-stat.constant");
 
@@ -14,6 +14,11 @@ const configFile = path.join(__dirname, "drop-query.config.cson");
 const infoFile = path.join(__dirname, "info.cson");
 const CONFIG = readCSONFile(configFile);
 const INFO = readCSONFile(infoFile);
+const LEVEL_ID = {
+  "甲": 3,
+  "乙": 2,
+  "丙": 1
+};
 
 function readCSONFile(cson){
   try{
@@ -44,18 +49,33 @@ function isCacheExpired(last_update){
   return lifetime > (CONFIG.update_cycle * 1000 + 60000);
 }
 
-function getCachedJSON(pid, cb){
-  let cachedFile = path.join(__dirname, "cache", `${pid}.json`);
+/**
+ * {type: "map", id: <map_id>}                       => res: HTML
+ * {type: "ship", id: <ship_id>}                     => res: JSON
+ * {type: "point", id: <map_id>-<level>-<point_id>}  => res: JSON
+ */
+function getCachedData(type, id, cb){
+  if(typeof type !== "string"){
+    logger.error(`Param 'type' provided is not a string`);
+    return;
+  }
+  else if(_.indexOf(["map", "point", "ship"]) >= 0){
+    logger.error(`No such cache type named ${type}`);
+    return;
+  }
+
+  let cachedFile = path.join(__dirname, "cache", `${type}`, `${id}`);
 
   //the cache is hit
   if(fs.existsSync(cachedFile)){
-    logger.debug(`Local cache is hit by ship id=${pid}`);
+    logger.debug(`Local cache is hit. Cache_type=${type}, Cache_id=${id}`);
 
     let cachedData = fs.readJsonSync(cachedFile, {throws: false});
 
     //not expired
     if(!isCacheExpired(cachedData.generateTime)){ // buffer time: 1 min
       logger.debug(`The cache is still effective`);
+
       if(typeof cb === "function"){
         cb(cachedData);
       }
@@ -68,22 +88,26 @@ function getCachedJSON(pid, cb){
     logger.debug(`The cache miss`);
   }
 
-  logger.debug(`Update the cache from https://db.kcwiki.org/drop/ship/${pid}/SAB.json`);
-  //connect to poi
-  getJSON(`https://db.kcwiki.org/drop/ship/${pid}/SAB.json`, function(err, res){
+  let id_token = (type == "point")? id.split("-"): undefined;
+  let update_url = (type == "ship")? `https://db.kcwiki.org/drop/ship/${id}/SAB.json`:
+    (type == "map")? `https://db.kcwiki.org/drop/map/${id}/`:
+    `https://db.kcwiki.org/drop/map/${id_token[0]}/${id_token[1]}/${id_token[2]}-SAB.json`;
+
+  logger.debug(`Update the cache from ${update_url}`);
+
+  function onResponse(err, res){
     if(err){
       logger.error("Connection error occurs when trying to connect to Poi DB");
       logger.error(err);
       return;
     }
 
-    setImmediate(function(){
-      cb(res);
-    });
-
     if(!res){
-      logger.info(`Empty response indicates no such data for ship id=${pid}`);
+      logger.info(`Empty response indicates no such data. Cache_type=${type}, Cache_id=${id}`);
       res = {generateTime: new Date().getTime()};
+    }
+    else if(typeof res === "string"){
+      res = {generateTime: new Date().getTime(), raw: res};
     }
 
     if(isCacheExpired(res.generateTime)){
@@ -98,14 +122,84 @@ function getCachedJSON(pid, cb){
       fs.writeJsonSync(cachedFile, res);
     }
     catch(e){
-      logger.error(`Error occurs when making cache for ship id=${pid}`);
+      logger.error(`Error occurs when making cache.  Cache_type=${type}, Cache_id=${id}`);
       logger.error(e);
     }
-  });
 
+    setImmediate(function(){
+      cb(res);
+    });
+  }
+
+  //connect to poi
+  if(type == "ship" || type == "point"){
+    getJSON(update_url, onResponse);
+  }
+  else{
+    getRaw(update_url, onResponse);
+  }
 }
 
-function processOutput(fromGroup, test_name, res){
+function parsePoiStatMap(res){
+  let ret = [];
+  let content = (typeof res === "object" && res.raw)? res.raw.split("\n"): [];
+  for(let line of content){
+    line = line.trim();
+    let result = line.match(/<a href='\/drop\/map\/\d{2,3}\/[1-3]\/([A-Z])-SAB\.html'>(\1.*?)<\/a>/);
+    if(result){
+      ret.push(result[2]);
+    }
+  }
+  return ret;
+}
+
+// !!!return undefined will cause infinite loop!!!
+function parsePoiStatPoint(res){
+  if(!res || !res.data) return {};
+
+  let rare_ships = {};
+
+  for(let ship of _.keys(res.data)){
+    let exdata = SHIP_EXDATA.shipData[ship];
+    if(exdata && exdata.rare){
+      rare_ships[ship] = res.data[ship];
+    }
+  }
+
+  return rare_ships;
+}
+
+function outputMapQuery(fromGroup, map_name, level, res){
+  if(!res){
+    logger.error(`Cannot find map statistics for Map '${map_name}, Level ${level}'`);
+    output(fromGroup, `電醬沒有在Poi資料庫找到${map_name}${level}的資料[CQ:face,id=9]`);
+    return;
+  }
+
+  let output_str = `${map_name}${level}:\n`;
+  for(let point of _.keys(res)){
+    if(_.size(res[point]) > 0){
+      output_str += `   - ${point}點有`;
+
+      for(let ship of _.keys(res[point])){
+        output_str += `${ship}、`;
+      }
+
+      if(_.last(output_str) == "、"){
+        output_str = output_str.substr(0, output_str.length - 1);
+      }
+      output_str += "\n";
+    }
+  }
+
+  if(_.last(output_str) == "\n"){
+    output_str = output_str.substr(0, output_str.length - 1);
+  }
+
+  output(fromGroup, output_str);
+}
+
+function outputShipQuery(fromGroup, test_name, res){
   if(!(res = parsePoiStatJSON(res))){
     logger.error(`Cannot find drop statistics for Ship '${test_name}'`);
     output(fromGroup, `電醬沒有在Poi資料庫找到${ch.s2t(test_name)}的資料[CQ:face,id=9]`);
@@ -185,15 +279,51 @@ function parsePoiStatJSON(poi_stat){
 function run(){
   global.bot.onInput("message.@me", function(bundle){
     logger.debug(`Drop query input: ${bundle.msg}`);
-    let tc_msg = ch.t2s(bundle.msg); //translate to traditional Chinese
+    let tc_msg = ch.t2s(bundle.msg).replace(/\[.*?\]/, "").trim(); //translate to traditional Chinese
+    let query_ships = tc_msg.match(/([1-6Ee])-?(\d)([甲乙丙])(?:级|难度)?(?:可以)?捞什麽/);
 
-    let query_ships = tc_msg.match(/([\deE])\-?(\d)(?:可以)?撈什麼/);
     if(query_ships){
+      logger.debug("It's a map Query!");
+
       let kaiiki_id = query_ships[1];
-      let map_id = `${query_ships[2]}`
+      let map_id = query_ships[2];
+      let level = query_ships[3];
+
       if(kaiiki_id.toLowerCase() == "e"){
         kaiiki_id = `${CONFIG.interested_maps[0]}`;
       }
+
+      logger.debug(`Fetch data for map ${kaiiki_id}${map_id}`);
+      getCachedData("map", `${kaiiki_id}${map_id}`, function(map_res){
+        let points = parsePoiStatMap(map_res);
+        let point_result = {};
+        for(let p of points){
+          let point_id = p.replace(/\(.*\)/, "").trim();
+          logger.debug(`Fetch data for point ${point_id}`);
+          getCachedData("point", `${kaiiki_id}${map_id}-${LEVEL_ID[level]}-${point_id}`, function(point_res){
+            point_result[p] = parsePoiStatPoint(point_res);
+            logger.debug(`Point ${point_id} is ready`);
+          });
+        }
+
+        function ensureAllFinished(){
+          for(let p of points){
+            if(!point_result[p]){
+              logger.debug(`Point ${p} is not ready, wait for another 500ms`);
+              setTimeout(ensureAllFinished, 500);
+              return;
+            }
+          }
+          logger.debug(`All points are ready now`);
+
+          //all finished
+          outputMapQuery(bundle.fromGroup, `${query_ships[1]}-${query_ships[2]}`, query_ships[3], point_result);
+        }
+
+        logger.debug(`Wait processing all points for 500ms`);
+        setTimeout(ensureAllFinished, 500);
+      });
+      return;
     }
 
     let matches = [
@@ -218,15 +348,15 @@ function run(){
             let test_name = candidate.substr(start_idx, name_length), pid = -1;
             if((pid = kcdata.getPoiIDByName(test_name)) >= 0){ //found
               logger.info(`Ship named ${test_name} is found!`);
-              getCachedJSON(pid, function(res){
-                processOutput(bundle.fromGroup, test_name, res);
+              getCachedData("ship", pid, function(res){
+                outputShipQuery(bundle.fromGroup, test_name, res);
               });
               return;
             }
             else if((pid = kcdata.getPoiIDByNameExdata(test_name)) >= 0){
               logger.info(`Ship named ${test_name} is found!`);
-              getCachedJSON(pid, function(res){
-                processOutput(bundle.fromGroup, test_name, res);
+              getCachedData("ship", pid, function(res){
+                outputShipQuery(bundle.fromGroup, test_name, res);
               });
               return;
             }

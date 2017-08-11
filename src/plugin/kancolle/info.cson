@@ -1,5 +1,5 @@
 id: "kancolle"
-module: ["exercise-reminder", "drop-query", "data-maintain"]
+module: ["drop-query", "data-maintain", "kouryaku"]
 author:
   name: "MomoCow"
   site: "https://momocow.github.io/"

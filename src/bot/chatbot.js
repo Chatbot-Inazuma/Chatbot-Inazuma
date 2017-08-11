@@ -48,7 +48,7 @@ module.exports = class Chatbot{
   }
 
   input(event, ...args){
-    logger.debug(`Handle an input event '${event}'.`);
+    // logger.debug(`Handle an input event '${event}'.`);
     this.SMI_HANDLER.emit(event, ...args);
   }
 

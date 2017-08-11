@@ -44,7 +44,16 @@ function getJSON (url, cb){
   });
 }
 
+function getRaw (url, cb){
+  request({url: url}, function (err, res, body) {
+    if(err) return cb(err);
+    if(res.statusCode != 200) return;
+    cb(undefined, body);
+  });
+}
+
 module.exports = {
   updateShipInfo,
-  getJSON
+  getJSON,
+  getRaw
 };

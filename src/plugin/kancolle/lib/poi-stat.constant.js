@@ -1119,7 +1119,7 @@ module.exports.shipData = {
       rare: true
     },
     "択捉": {
-      chineseName: "択捉",
+      chineseName: "择捉",
       nameForSearch: "択捉",
       shipType: "海防舰",
       rare: true

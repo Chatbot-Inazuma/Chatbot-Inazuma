@@ -31,7 +31,7 @@ function checkExercTime(){
 }
 
 function run(){
-  loop = setInterval(checkExercTime, 1000);
+  // loop = setInterval(checkExercTime, 1000);
 }
 
 module.exports = {
