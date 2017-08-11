@@ -116,23 +116,24 @@ function processOutput(fromGroup, test_name, res){
   if(res.type == "interested"){
     delete res.type;
 
-    let current_map = ["", "", ""];
+    let map_stats = {};
     for(let map_name of _.keys(res)){
       let kaiiki_stage = map_name.split("-");
-      let map_readable = "";
+      let point_drop = `${res[map_name].rate}% (S: ${res[map_name].rankCount[0]}件, A: ${res[map_name].rankCount[1]}件, B: ${res[map_name].rankCount[2]}件)\n`
+      _.set(map_stats, `${kaiiki_stage[0]}.${kaiiki_stage[1]}.${kaiiki_stage[2]}.${kaiiki_stage[3]}`, point_drop);
+    }
 
-      if(current_map[0] != kaiiki_stage[0] || current_map[1] != kaiiki_stage[1] || current_map[2] != kaiiki_stage[2]){
-        // new map point
-        map_readable = SHIP_EXDATA.mapWikiData[parseInt(`${kaiiki_stage[0]}${kaiiki_stage[1]}`)];
-        map_readable = map_readable.replace(/^20([0-9]{2})年(.)季活动\/(E-\d)$/, "$1$2$3");
-        map_readable += ` ${kaiiki_stage[2]}點`;
-        current_map[0] = kaiiki_stage[0];
-        current_map[1] = kaiiki_stage[1];
-        current_map[2] = kaiiki_stage[2];
-        query_result += ` - 在${map_readable}的掉落率\n`;
+    for(let kaiiki of map_stats){
+      for(let map of map_stats[kaiiki]){
+        for(let point of map_stats[kaiiki][map]){
+          let map_readable = SHIP_EXDATA.mapWikiData[parseInt(`${kaiiki}${map}`)];
+          map_readable = map_readable.replace(/^20([0-9]{2})年(.)季活动\/(E-\d)$/, "$1$2$3");
+          query_result += ` - 在${map_readable} ${point}點的掉落率\n`;
+          for(let level of map_stats[kaiiki][map][point]){
+            query_result += `      · ${level}: ${map_stats[kaiiki][map][point][level]}\n`;
+          }
+        }
       }
-
-      query_result += `      · ${kaiiki_stage[3]}: ${res[map_name].rate}% (S: ${res[map_name].rankCount[0]}件, A: ${res[map_name].rankCount[1]}件, B: ${res[map_name].rankCount[2]}件)\n`;
     }
   }
   else if(res.type == "highest" && !_.isEmpty(res.name)){
