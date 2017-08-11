@@ -123,13 +123,13 @@ function processOutput(fromGroup, test_name, res){
       _.set(map_stats, `${kaiiki_stage[0]}.${kaiiki_stage[1]}.${kaiiki_stage[2]}.${kaiiki_stage[3]}`, point_drop);
     }
 
-    for(let kaiiki of map_stats){
-      for(let map of map_stats[kaiiki]){
-        for(let point of map_stats[kaiiki][map]){
+    for(let kaiiki of _.keys(map_stats)){
+      for(let map of _.keys(map_stats[kaiiki])){
+        for(let point of _.keys(map_stats[kaiiki][map])){
           let map_readable = SHIP_EXDATA.mapWikiData[parseInt(`${kaiiki}${map}`)];
           map_readable = map_readable.replace(/^20([0-9]{2})年(.)季活动\/(E-\d)$/, "$1$2$3");
           query_result += ` - 在${map_readable} ${point}點的掉落率\n`;
-          for(let level of map_stats[kaiiki][map][point]){
+          for(let level of _.keys(map_stats[kaiiki][map][point])){
             query_result += `      · ${level}: ${map_stats[kaiiki][map][point][level]}\n`;
           }
         }
