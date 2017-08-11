@@ -182,51 +182,64 @@ function parsePoiStatJSON(poi_stat){
   return (_.isEmpty(interested))? highest: _.assign(interested, {type: "interested"});
 }
 
-module.exports = {
-  run(){
-    global.bot.onInput("message.@me", function(bundle){
-      logger.debug(`Drop query input: ${bundle.msg}`);
-      let tc_msg = ch.t2s(bundle.msg); //translate to traditional Chinese
-      let matches = [
-        tc_msg.match(/([\-0-9a-zA-Z\s]+)的{0,1}掉落率{0,1}.{0,1}多少/),
-        tc_msg.match(/([\-0-9a-zA-Z\s]+)的{0,1}掉落率{0,1}[呢吗?]/),
-        tc_msg.match(/求([\-0-9a-zA-Z\s]+)的{0,1}掉落率.*/),
-        tc_msg.match(/([^\-0-9a-zA-Z\s]{1,4})掉落率{0,1}.{0,1}多少/),
-        tc_msg.match(/([^\-0-9a-zA-Z\s]{0,4})掉落率{0,1}[呢吗?]/),
-        tc_msg.match(/求([^\-0-9a-zA-Z\s]{0,4})掉落率.*/)
-      ];
-      logger.debug(matches);
+function run(){
+  global.bot.onInput("message.@me", function(bundle){
+    logger.debug(`Drop query input: ${bundle.msg}`);
+    let tc_msg = ch.t2s(bundle.msg); //translate to traditional Chinese
 
-      let failed_names = {}; //to avoid redundant search on the same name
-      for(let result of matches){
-        logger.debug(`Failed: ${failed_names}`);
-        if(result && !failed_names[result[1]]){
-          let candidate = result[1].replace("的", "");
-          logger.debug(`Candidate: "${candidate}"`);
-          for(let name_length = candidate.length; name_length > 0; name_length--){
-            for(let start_idx = 0; start_idx + name_length <= candidate.length; start_idx++){
-              let test_name = candidate.substr(start_idx, name_length), pid = -1;
-              if((pid = kcdata.getPoiIDByName(test_name)) >= 0){ //found
-                logger.info(`Ship named ${test_name} is found!`);
-                getCachedJSON(pid, function(res){
-                  processOutput(bundle.fromGroup, test_name, res);
-                });
-                return;
-              }
-              else if((pid = kcdata.getPoiIDByNameExdata(test_name)) >= 0){
-                logger.info(`Ship named ${test_name} is found!`);
-                getCachedJSON(pid, function(res){
-                  processOutput(bundle.fromGroup, test_name, res);
-                });
-                return;
-              }
-              // not found
-              logger.error(`Cannot find a ship named '${test_name}'`);
-            }
-          }
-          failed_names[result[1]] = true;
-        }
+    let query_ships = tc_msg.match(/([\deE])\-?(\d)(?:可以)?撈什麼/);
+    if(query_ships){
+      let kaiiki_id = query_ships[1];
+      let map_id = `${query_ships[2]}`
+      if(kaiiki_id.toLowerCase() == "e"){
+        kaiiki_id = `${CONFIG.interested_maps[0]}`;
       }
-    });
-  } //end run()
+    }
+
+    let matches = [
+      tc_msg.match(/([\-0-9a-zA-Z\s]+)的?掉落率?.?多少/),
+      tc_msg.match(/([\-0-9a-zA-Z\s]+)的?掉落率?[呢吗?]/),
+      tc_msg.match(/求([\-0-9a-zA-Z\s]+)的?掉落率.*/),
+      tc_msg.match(/([^\-0-9a-zA-Z\s]{1,4})掉落率?.?多少/),
+      tc_msg.match(/([^\-0-9a-zA-Z\s]{0,4})掉落率?[呢吗?]/),
+      tc_msg.match(/求([^\-0-9a-zA-Z\s]{0,4})掉落率.*/)
+    ];
+    logger.debug(matches);
+
+    let failed_names = {}; //to avoid redundant search on the same name
+    for(let result of matches){
+      logger.debug(`Failed:`);
+      logger.debug(failed_names);
+      if(result && !failed_names[result[1]]){
+        let candidate = result[1].replace("的", "");
+        logger.debug(`Candidate: "${candidate}"`);
+        for(let name_length = candidate.length; name_length > 0; name_length--){
+          for(let start_idx = 0; start_idx + name_length <= candidate.length; start_idx++){
+            let test_name = candidate.substr(start_idx, name_length), pid = -1;
+            if((pid = kcdata.getPoiIDByName(test_name)) >= 0){ //found
+              logger.info(`Ship named ${test_name} is found!`);
+              getCachedJSON(pid, function(res){
+                processOutput(bundle.fromGroup, test_name, res);
+              });
+              return;
+            }
+            else if((pid = kcdata.getPoiIDByNameExdata(test_name)) >= 0){
+              logger.info(`Ship named ${test_name} is found!`);
+              getCachedJSON(pid, function(res){
+                processOutput(bundle.fromGroup, test_name, res);
+              });
+              return;
+            }
+            // not found
+            logger.error(`Cannot find a ship named '${test_name}'`);
+          }
+        }
+        failed_names[result[1]] = true;
+      }
+    }
+  });
+}
+
+module.exports = {
+  run
 };
