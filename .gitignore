@@ -54,3 +54,6 @@ tmp
 
 # config files
 *config.*son
+
+# WebStorm config file
+.idea
