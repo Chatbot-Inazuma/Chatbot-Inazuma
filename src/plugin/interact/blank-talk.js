@@ -37,12 +37,6 @@ function output(group, msg){
 module.exports = {
   run(){
     global.bot.onInput("message.@me", function(bundle){
-      // let ans = [
-      //   "才不要理你! なのです!",
-      //   "変態! なのです!",
-      //   "ロリコン! なのです!",
-      //   "醒醒你沒有女朋友! なのです!"
-      // ];
       let suggest = "你可以問電醬的問題有3個：\n   - <艦娘名字>的掉落率多少\n" +
         "   - <地圖><難度>可以撈什麼\n   - <地圖>攻 略";
       let message = bundle.msg.replace(/\[.*?\]/, "");

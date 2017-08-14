@@ -145,6 +145,9 @@ function parsePoiStatMap(res){
   let content = (typeof res === "object" && res.raw)? res.raw.split("\n"): [];
   for(let line of content){
     line = line.trim();
+    if(line.match(/<b>评价:<\/b>/)){
+      break;
+    }
     let result = line.match(/<a href='\/drop\/map\/\d{2,3}\/[1-3]\/([A-Z])-SAB\.html'>(\1.*?)<\/a>/);
     if(result){
       ret.push(result[2]);
@@ -161,7 +164,7 @@ function parsePoiStatPoint(res){
 
   for(let ship of _.keys(res.data)){
     let exdata = SHIP_EXDATA.shipData[ship];
-    if(exdata && exdata.rare){
+    if(!exdata || (exdata && exdata.rare)){
       rare_ships[ship] = res.data[ship];
     }
   }
