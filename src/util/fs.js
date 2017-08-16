@@ -15,8 +15,8 @@ function getDirList(source){
 function readCSONFile(cson){
   try{
     fs.accessSync(cson, fs.R_OK|fs.W_OK);
-    return CSON.parseCSONFile(cson);
     logger.info(`Successfully read ${cson}`);
+    return CSON.parseCSONFile(cson);
   }
   catch(e){
     logger.error(`Fail to read cson from ${cson}`);
