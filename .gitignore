@@ -53,7 +53,8 @@ jspm_packages
 tmp
 
 # config files
-*config.*son
+config.cson
+config.json
 
 # WebStorm config file
 .idea
