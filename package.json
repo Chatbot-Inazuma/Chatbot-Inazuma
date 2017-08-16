@@ -28,6 +28,7 @@
   "dependencies": {
     "cson": "^4.1.0",
     "fs-extra": "^4.0.1",
+    "jp-conversion": "0.0.7",
     "lodash": "^4.17.4",
     "node-ipc": "^9.1.0",
     "request": "^2.81.0",
