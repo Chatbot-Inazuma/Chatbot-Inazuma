@@ -1,0 +1,4 @@
+update_cycle: 3600 # sec, float is acceptable
+interested_maps: [
+  "39"
+]
