@@ -1,0 +1,6 @@
+bot_qid: 0,
+target: [
+    id: 0
+    type: "g" # 'g' for groups; 'i' for individuals; 'd' for discuss groups
+    subsc: [""] # "<mod-name>@<plugin-id>" e.g. "drop-query@kancolle" or "*@kancolle" or "kancolle"
+]
