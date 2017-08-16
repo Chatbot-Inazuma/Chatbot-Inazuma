@@ -2,6 +2,8 @@ const fs = require('fs-extra');
 const path = require('path');
 const CSON = require("cson");
 
+const logger = require("./logger")("lib/fs");
+
 function isDir(source){
   return fs.lstatSync(source).isDirectory();
 }
